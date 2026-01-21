@@ -607,24 +607,26 @@
 
         .card-view-actions {
             display: flex;
-            gap: 12px;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .card-view-actions button {
             flex: 1;
-            padding: 14px;
+            min-width: 90px;
+            padding: 10px 8px;
             border-radius: var(--radius-sm);
             border: 1px solid var(--border);
             background: var(--bg-card);
             color: var(--text-primary);
             font-family: inherit;
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 500;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
+            gap: 6px;
             transition: var(--transition);
         }
 
@@ -1137,7 +1139,7 @@
                     </div>
                 </div>
                 
-                <button class="btn-primary" onclick="saveCard()">Сохранить карту</button>
+                <button type="button" class="btn-primary" onclick="saveCard()">Сохранить карту</button>
             </div>
         </div>
     </div>
@@ -1213,7 +1215,7 @@
                 <div class="settings-item" style="border-bottom: none;">
                     <div>
                         <div class="settings-label">О приложении</div>
-                        <div class="settings-desc" id="app-version-text">CardVault v2.5</div>
+                        <div class="settings-desc" id="app-version-text">CardVault v2.6</div>
                     </div>
                 </div>
             </div>
@@ -1458,7 +1460,7 @@
         // ========================================
         
         // Версия приложения для проверки обновлений
-        const APP_VERSION = '2.5';
+        const APP_VERSION = '2.6';
         const GITHUB_REPO = 'StWings/Cardvault';
 
         const DB_NAME = 'cardvault';
@@ -1469,6 +1471,7 @@
         let searchQuery = '';
         let selectedColor = '#6366f1';
         let currentViewCard = null;
+        let editingCardId = null; // ID карты при редактировании
 
         const categoryLabels = {
             shops: 'Магазины',
@@ -1600,7 +1603,10 @@
         }
 
         function openAddModal() {
+            editingCardId = null; // Сбрасываем режим редактирования
             document.getElementById('add-modal').classList.add('active');
+            document.querySelector('#add-modal .modal-title').textContent = 'Добавить карту';
+            document.querySelector('#add-modal .btn-primary').textContent = 'Сохранить карту';
             document.getElementById('card-name').value = '';
             document.getElementById('card-number').value = '';
             document.getElementById('barcode-type').value = 'EAN13';
@@ -1618,28 +1624,44 @@
             const number = document.getElementById('card-number').value.trim();
             const barcodeType = document.getElementById('barcode-type').value;
             const category = document.getElementById('card-category').value;
-            
+
             if (!name || !number) {
                 showToast('Заполните название и номер карты', 'error');
                 return;
             }
-            
-            const card = {
-                id: generateId(),
-                name,
-                number,
-                barcodeType,
-                category,
-                color: selectedColor,
-                createdAt: Date.now()
-            };
-            
+
             try {
-                await saveCardToDB(card);
-                cards.push(card);
+                if (editingCardId) {
+                    // Режим редактирования
+                    const existingCard = cards.find(c => c.id === editingCardId);
+                    if (existingCard) {
+                        existingCard.name = name;
+                        existingCard.number = number;
+                        existingCard.barcodeType = barcodeType;
+                        existingCard.category = category;
+                        existingCard.color = selectedColor;
+                        await saveCardToDB(existingCard);
+                        showToast('Карта обновлена!', 'success');
+                    }
+                } else {
+                    // Режим добавления
+                    const card = {
+                        id: generateId(),
+                        name,
+                        number,
+                        barcodeType,
+                        category,
+                        color: selectedColor,
+                        createdAt: Date.now()
+                    };
+                    await saveCardToDB(card);
+                    cards.push(card);
+                    showToast('Карта сохранена!', 'success');
+                }
+
                 renderCards();
                 closeAddModal();
-                showToast('Карта сохранена!', 'success');
+                editingCardId = null;
             } catch (error) {
                 showToast('Ошибка сохранения', 'error');
             }
@@ -1668,6 +1690,13 @@
                 <div class="barcode-container" id="barcode-container"></div>
                 <div class="card-view-number mono">${escapeHtml(card.number)}</div>
                 <div class="card-view-actions">
+                    <button onclick="editCard('${card.id}')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        Изменить
+                    </button>
                     <button onclick="copyCardNumber()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -1728,6 +1757,29 @@
         function closeViewModal() {
             document.getElementById('view-modal').classList.remove('active');
             currentViewCard = null;
+        }
+
+        function editCard(id) {
+            const card = cards.find(c => c.id === id);
+            if (!card) return;
+
+            // Закрываем просмотр
+            closeViewModal();
+
+            // Устанавливаем режим редактирования
+            editingCardId = id;
+
+            // Открываем форму и заполняем данными
+            document.getElementById('add-modal').classList.add('active');
+            document.querySelector('#add-modal .modal-title').textContent = 'Редактировать карту';
+            document.querySelector('#add-modal .btn-primary').textContent = 'Сохранить изменения';
+
+            document.getElementById('card-name').value = card.name;
+            document.getElementById('card-number').value = card.number;
+            document.getElementById('barcode-type').value = card.barcodeType;
+            document.getElementById('card-category').value = card.category;
+            selectedColor = card.color;
+            updateColorSelection();
         }
 
         async function copyCardNumber() {
