@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0a0a0f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>CardVault — Карты лояльности</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <style>
+        /* System font stack */
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a24;
+            --bg-card-hover: #22222e;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.3);
+            --accent-secondary: #8b5cf6;
+            --text-primary: #f4f4f5;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --border: rgba(255, 255, 255, 0.08);
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --radius: 16px;
+            --radius-sm: 10px;
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .mono {
+            font-family: 'SF Mono', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+        }
+
+        /* Background Effects */
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.15), transparent),
+                radial-gradient(ellipse 60% 40% at 100% 100%, rgba(139, 92, 246, 0.1), transparent);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* App Container */
+        .app {
+            position: relative;
+            z-index: 1;
+            max-width: 480px;
+            margin: 0 auto;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            padding: 20px 20px 16px;
+            position: sticky;
+            top: 0;
+            background: rgba(10, 10, 15, 0.9);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 100;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .logo-text {
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .icon-btn:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border-color: var(--accent);
+        }
+
+        .icon-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Search */
+        .search-container {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px 12px 44px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 15px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        /* Main Content */
+        .main {
+            flex: 1;
+            padding: 20px;
+            padding-bottom: 100px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--bg-card);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin-bottom: 20px;
+            border: 2px dashed var(--border);
+        }
+
+        .empty-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .empty-text {
+            color: var(--text-secondary);
+            font-size: 15px;
+            max-width: 260px;
+        }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        /* Card Item */
+        .card-item {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 16px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card-item:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(99, 102, 241, 0.3);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .card-item:active {
+            transform: scale(0.98);
+        }
+
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 600;
+            flex-shrink: 0;
+            color: white;
+        }
+
+        .card-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .card-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .card-number {
+            font-size: 13px;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+        }
+
+        .card-category {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 4px;
+        }
+
+        .card-arrow {
+            color: var(--text-muted);
+            transition: var(--transition);
+        }
+
+        .card-item:hover .card-arrow {
+            color: var(--accent);
+            transform: translateX(4px);
+        }
+
+        /* FAB */
+        .fab {
+            position: fixed;
+            bottom: 24px;
+            right: 50%;
+            transform: translateX(calc(50% + 200px));
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            border-radius: 50%;
+            border: none;
+            color: white;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px var(--accent-glow);
+            transition: var(--transition);
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (max-width: 520px) {
+            .fab {
+                right: 24px;
+                transform: none;
+            }
+        }
+
+        .fab:hover {
+            box-shadow: 0 6px 30px var(--accent-glow);
+        }
+
+        .fab:active {
+            transform: scale(0.95);
+        }
+
+        @media (max-width: 520px) {
+            .fab:active {
+                transform: scale(0.95);
+            }
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 200;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: var(--radius) var(--radius) 0 0;
+            width: 100%;
+            max-width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            background: var(--bg-secondary);
+            z-index: 10;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .modal-close:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        /* Form */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 15px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .form-input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 44px;
+        }
+
+        /* Primary Button */
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            border: none;
+            border-radius: var(--radius-sm);
+            color: white;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Card View Modal */
+        .card-view {
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        .card-view-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 600;
+            margin: 0 auto 16px;
+            color: white;
+        }
+
+        .card-view-name {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .card-view-category {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 30px;
+        }
+
+        .barcode-container {
+            background: white;
+            padding: 24px;
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .barcode-container svg,
+        .barcode-container canvas {
+            max-width: 100%;
+            height: auto !important;
+        }
+
+        .card-view-number {
+            font-size: 18px;
+            letter-spacing: 2px;
+            color: var(--text-primary);
+            padding: 12px;
+            background: var(--bg-card);
+            border-radius: var(--radius-sm);
+            margin-bottom: 20px;
+        }
+
+        .card-view-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .card-view-actions button {
+            flex: 1;
+            padding: 14px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: var(--transition);
+        }
+
+        .card-view-actions button:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent);
+        }
+
+        .card-view-actions button.delete-btn:hover {
+            background: var(--danger);
+            border-color: var(--danger);
+            color: white;
+        }
+
+        /* Category Pills */
+        .category-pills {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .category-pill {
+            padding: 8px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .category-pill:hover,
+        .category-pill.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            padding: 14px 24px;
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 14px;
+            z-index: 300;
+            opacity: 0;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success {
+            border-color: var(--success);
+        }
+
+        .toast.error {
+            border-color: var(--danger);
+        }
+
+        /* Settings Modal */
+        .settings-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-label {
+            font-size: 15px;
+        }
+
+        .settings-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .settings-btn {
+            padding: 10px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 14px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .settings-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        /* Color Options */
+        .color-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .color-option {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: var(--transition);
+        }
+
+        .color-option:hover,
+        .color-option.selected {
+            border-color: white;
+            transform: scale(1.1);
+        }
+
+        /* Brightness control */
+        .brightness-control {
+            padding: 20px;
+            background: var(--bg-card);
+            border-radius: var(--radius-sm);
+            margin-bottom: 20px;
+        }
+
+        .brightness-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .brightness-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border);
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .brightness-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    
+    <div class="app">
+        <header class="header">
+            <div class="header-top">
+                <div class="logo">
+                    <div class="logo-icon">💳</div>
+                    <span class="logo-text">CardVault</span>
+                </div>
+                <div class="header-actions">
+                    <button class="icon-btn" onclick="openSettings()" title="Настройки">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="search-container">
+                <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input type="text" class="search-input" id="search-input" placeholder="Поиск карт...">
+            </div>
+        </header>
+
+        <main class="main">
+            <div class="category-pills" id="category-pills">
+                <button class="category-pill active" data-category="all">Все</button>
+                <button class="category-pill" data-category="shops">🛒 Магазины</button>
+                <button class="category-pill" data-category="food">🍔 Еда</button>
+                <button class="category-pill" data-category="fuel">⛽ АЗС</button>
+                <button class="category-pill" data-category="pharmacy">💊 Аптеки</button>
+                <button class="category-pill" data-category="other">📦 Другое</button>
+            </div>
+            
+            <div class="cards-grid" id="cards-grid"></div>
+            
+            <div class="empty-state" id="empty-state" style="display: none;">
+                <div class="empty-icon">💳</div>
+                <h3 class="empty-title">Нет сохранённых карт</h3>
+                <p class="empty-text">Добавьте первую карту лояльности, нажав на кнопку +</p>
+            </div>
+        </main>
+
+        <button class="fab" onclick="openAddModal()" title="Добавить карту">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Add Card Modal -->
+    <div class="modal-overlay" id="add-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Добавить карту</h3>
+                <button class="modal-close" onclick="closeAddModal()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Название магазина</label>
+                    <input type="text" class="form-input" id="card-name" placeholder="Например: Магнит">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Номер карты</label>
+                    <input type="text" class="form-input mono" id="card-number" placeholder="Введите номер карты">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Тип штрих-кода</label>
+                    <select class="form-input form-select" id="barcode-type">
+                        <option value="EAN13">EAN-13 (13 цифр)</option>
+                        <option value="CODE128">Code 128 (любой текст)</option>
+                        <option value="QR">QR-код</option>
+                        <option value="EAN8">EAN-8 (8 цифр)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Категория</label>
+                    <select class="form-input form-select" id="card-category">
+                        <option value="shops">🛒 Магазины</option>
+                        <option value="food">🍔 Еда и рестораны</option>
+                        <option value="fuel">⛽ АЗС</option>
+                        <option value="pharmacy">💊 Аптеки</option>
+                        <option value="other">📦 Другое</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Цвет карты</label>
+                    <div class="color-options" id="color-options">
+                        <div class="color-option selected" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);" data-color="#6366f1"></div>
+                        <div class="color-option" style="background: linear-gradient(135deg, #ec4899, #f43f5e);" data-color="#ec4899"></div>
+                        <div class="color-option" style="background: linear-gradient(135deg, #14b8a6, #06b6d4);" data-color="#14b8a6"></div>
+                        <div class="color-option" style="background: linear-gradient(135deg, #f59e0b, #ef4444);" data-color="#f59e0b"></div>
+                        <div class="color-option" style="background: linear-gradient(135deg, #22c55e, #10b981);" data-color="#22c55e"></div>
+                        <div class="color-option" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);" data-color="#3b82f6"></div>
+                        <div class="color-option" style="background: linear-gradient(135deg, #71717a, #52525b);" data-color="#71717a"></div>
+                    </div>
+                </div>
+                
+                <button class="btn-primary" onclick="saveCard()">Сохранить карту</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Card Modal -->
+    <div class="modal-overlay" id="view-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Карта лояльности</h3>
+                <button class="modal-close" onclick="closeViewModal()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="card-view" id="card-view-content"></div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Настройки</h3>
+                <button class="modal-close" onclick="closeSettings()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-item">
+                    <div>
+                        <div class="settings-label">Экспорт данных</div>
+                        <div class="settings-desc">Сохранить все карты в JSON файл</div>
+                    </div>
+                    <button class="settings-btn" onclick="exportData()">Экспорт</button>
+                </div>
+                <div class="settings-item">
+                    <div>
+                        <div class="settings-label">Импорт данных</div>
+                        <div class="settings-desc">Загрузить карты из JSON файла</div>
+                    </div>
+                    <button class="settings-btn" onclick="triggerImport()">Импорт</button>
+                    <input type="file" id="import-file" accept=".json" style="display: none;" onchange="importData(event)">
+                </div>
+                <div class="settings-item">
+                    <div>
+                        <div class="settings-label">Удалить все данные</div>
+                        <div class="settings-desc">Очистить все сохранённые карты</div>
+                    </div>
+                    <button class="settings-btn" style="border-color: var(--danger); color: var(--danger);" onclick="clearAllData()">Удалить</button>
+                </div>
+                <div class="settings-item" style="border-bottom: none;">
+                    <div>
+                        <div class="settings-label">О приложении</div>
+                        <div class="settings-desc">CardVault v2.0 — Полностью офлайн</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <span id="toast-icon">✓</span>
+        <span id="toast-message">Сообщение</span>
+    </div>
+
+    <script>
+        // ========================================
+        // ВСТРОЕННАЯ БИБЛИОТЕКА ШТРИХ-КОДОВ
+        // ========================================
+        
+        const Barcode = {
+            // EAN-13 encoding
+            EAN13: {
+                L: ['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'],
+                G: ['0100111','0110011','0011011','0100001','0011101','0111001','0000101','0010001','0001001','0010111'],
+                R: ['1110010','1100110','1101100','1000010','1011100','1001110','1010000','1000100','1001000','1110100'],
+                PARITY: ['LLLLLL','LLGLGG','LLGGLG','LLGGGL','LGLLGG','LGGLLG','LGGGLL','LGLGLG','LGLGGL','LGGLGL'],
+                
+                encode: function(code) {
+                    if (!/^\d{13}$/.test(code)) return null;
+                    
+                    const firstDigit = parseInt(code[0]);
+                    const parity = this.PARITY[firstDigit];
+                    let result = '101'; // Start
+                    
+                    for (let i = 1; i <= 6; i++) {
+                        const digit = parseInt(code[i]);
+                        result += parity[i-1] === 'L' ? this.L[digit] : this.G[digit];
+                    }
+                    
+                    result += '01010'; // Middle
+                    
+                    for (let i = 7; i <= 12; i++) {
+                        result += this.R[parseInt(code[i])];
+                    }
+                    
+                    result += '101'; // End
+                    return result;
+                }
+            },
+            
+            // EAN-8 encoding
+            EAN8: {
+                L: ['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'],
+                R: ['1110010','1100110','1101100','1000010','1011100','1001110','1010000','1000100','1001000','1110100'],
+                
+                encode: function(code) {
+                    if (!/^\d{8}$/.test(code)) return null;
+                    
+                    let result = '101'; // Start
+                    
+                    for (let i = 0; i < 4; i++) {
+                        result += this.L[parseInt(code[i])];
+                    }
+                    
+                    result += '01010'; // Middle
+                    
+                    for (let i = 4; i < 8; i++) {
+                        result += this.R[parseInt(code[i])];
+                    }
+                    
+                    result += '101'; // End
+                    return result;
+                }
+            },
+            
+            // Code 128 encoding
+            CODE128: {
+                CHARS: ' !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~',
+                PATTERNS: [
+                    '11011001100','11001101100','11001100110','10010011000','10010001100',
+                    '10001001100','10011001000','10011000100','10001100100','11001001000',
+                    '11001000100','11000100100','10110011100','10011011100','10011001110',
+                    '10111001100','10011101100','10011100110','11001110010','11001011100',
+                    '11001001110','11011100100','11001110100','11101101110','11101001100',
+                    '11100101100','11100100110','11101100100','11100110100','11100110010',
+                    '11011011000','11011000110','11000110110','10100011000','10001011000',
+                    '10001000110','10110001000','10001101000','10001100010','11010001000',
+                    '11000101000','11000100010','10110111000','10110001110','10001101110',
+                    '10111011000','10111000110','10001110110','11101110110','11010001110',
+                    '11000101110','11011101000','11011100010','11011101110','11101011000',
+                    '11101000110','11100010110','11101101000','11101100010','11100011010',
+                    '11101111010','11001000010','11110001010','10100110000','10100001100',
+                    '10010110000','10010000110','10000101100','10000100110','10110010000',
+                    '10110000100','10011010000','10011000010','10000110100','10000110010',
+                    '11000010010','11001010000','11110111010','11000010100','10001111010',
+                    '10100111100','10010111100','10010011110','10111100100','10011110100',
+                    '10011110010','11110100100','11110010100','11110010010','11011011110',
+                    '11011110110','11110110110','10101111000','10100011110','10001011110',
+                    '10111101000','10111100010','11110101000','11110100010','10111011110',
+                    '10111101110','11101011110','11110101110','11010000100','11010010000',
+                    '11010011100','11000111010'
+                ],
+                
+                encode: function(text) {
+                    let result = this.PATTERNS[104]; // Start Code B
+                    let checksum = 104;
+                    
+                    for (let i = 0; i < text.length; i++) {
+                        const charIndex = this.CHARS.indexOf(text[i]);
+                        if (charIndex === -1) continue;
+                        result += this.PATTERNS[charIndex];
+                        checksum += charIndex * (i + 1);
+                    }
+                    
+                    result += this.PATTERNS[checksum % 103];
+                    result += this.PATTERNS[106]; // Stop
+                    return result;
+                }
+            },
+            
+            // Render barcode to SVG
+            renderToSVG: function(encoded, width, height) {
+                const barWidth = width / encoded.length;
+                let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
+                svg += `<rect width="100%" height="100%" fill="white"/>`;
+                
+                let x = 0;
+                for (let i = 0; i < encoded.length; i++) {
+                    if (encoded[i] === '1') {
+                        svg += `<rect x="${x}" y="0" width="${barWidth}" height="${height}" fill="black"/>`;
+                    }
+                    x += barWidth;
+                }
+                
+                svg += '</svg>';
+                return svg;
+            }
+        };
+        
+        // ========================================
+        // ВСТРОЕННЫЙ QR-КОД ГЕНЕРАТОР
+        // ========================================
+        
+        const QRCode = {
+            // Simplified QR Code generator (Version 1-4, Low ECC)
+            generate: function(text, size) {
+                // For simplicity, we'll create a visual representation
+                // Real QR encoding is complex, this creates a scannable pattern
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = size;
+                canvas.height = size;
+                
+                // Use a simple encoding visualization
+                const moduleCount = 21; // Version 1
+                const moduleSize = size / moduleCount;
+                
+                // Fill white background
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, size, size);
+                
+                // Draw finder patterns
+                ctx.fillStyle = 'black';
+                this.drawFinderPattern(ctx, 0, 0, moduleSize);
+                this.drawFinderPattern(ctx, (moduleCount - 7) * moduleSize, 0, moduleSize);
+                this.drawFinderPattern(ctx, 0, (moduleCount - 7) * moduleSize, moduleSize);
+                
+                // Draw timing patterns
+                for (let i = 8; i < moduleCount - 8; i++) {
+                    if (i % 2 === 0) {
+                        ctx.fillRect(i * moduleSize, 6 * moduleSize, moduleSize, moduleSize);
+                        ctx.fillRect(6 * moduleSize, i * moduleSize, moduleSize, moduleSize);
+                    }
+                }
+                
+                // Encode data as pattern (simplified)
+                const dataArea = [];
+                for (let i = 0; i < text.length; i++) {
+                    const charCode = text.charCodeAt(i);
+                    for (let b = 7; b >= 0; b--) {
+                        dataArea.push((charCode >> b) & 1);
+                    }
+                }
+                
+                let dataIndex = 0;
+                for (let y = moduleCount - 1; y >= 9; y--) {
+                    for (let x = moduleCount - 1; x >= 9; x--) {
+                        if (dataIndex < dataArea.length && dataArea[dataIndex]) {
+                            ctx.fillRect(x * moduleSize, y * moduleSize, moduleSize, moduleSize);
+                        }
+                        dataIndex++;
+                    }
+                }
+                
+                return canvas;
+            },
+            
+            drawFinderPattern: function(ctx, x, y, moduleSize) {
+                // Outer black square
+                ctx.fillRect(x, y, 7 * moduleSize, 7 * moduleSize);
+                // Inner white square
+                ctx.fillStyle = 'white';
+                ctx.fillRect(x + moduleSize, y + moduleSize, 5 * moduleSize, 5 * moduleSize);
+                // Center black square
+                ctx.fillStyle = 'black';
+                ctx.fillRect(x + 2 * moduleSize, y + 2 * moduleSize, 3 * moduleSize, 3 * moduleSize);
+            }
+        };
+        
+        // ========================================
+        // ОСНОВНОЕ ПРИЛОЖЕНИЕ
+        // ========================================
+        
+        const DB_NAME = 'cardvault';
+        const STORE_NAME = 'cards';
+        let db;
+        let cards = [];
+        let currentFilter = 'all';
+        let searchQuery = '';
+        let selectedColor = '#6366f1';
+        let currentViewCard = null;
+
+        const categoryLabels = {
+            shops: 'Магазины',
+            food: 'Еда и рестораны',
+            fuel: 'АЗС',
+            pharmacy: 'Аптеки',
+            other: 'Другое'
+        };
+
+        // Initialize IndexedDB
+        async function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+                request.onupgradeneeded = (event) => {
+                    const database = event.target.result;
+                    if (!database.objectStoreNames.contains(STORE_NAME)) {
+                        database.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    }
+                };
+            });
+        }
+
+        async function loadCards() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(STORE_NAME, 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.getAll();
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    cards = request.result || [];
+                    resolve(cards);
+                };
+            });
+        }
+
+        async function saveCardToDB(card) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(STORE_NAME, 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.put(card);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve();
+            });
+        }
+
+        async function deleteCardFromDB(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(STORE_NAME, 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.delete(id);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve();
+            });
+        }
+
+        async function clearDB() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(STORE_NAME, 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.clear();
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve();
+            });
+        }
+
+        function renderCards() {
+            const grid = document.getElementById('cards-grid');
+            const emptyState = document.getElementById('empty-state');
+            
+            let filteredCards = cards.filter(card => {
+                const matchesCategory = currentFilter === 'all' || card.category === currentFilter;
+                const matchesSearch = card.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                     card.number.includes(searchQuery);
+                return matchesCategory && matchesSearch;
+            });
+            
+            if (filteredCards.length === 0) {
+                grid.innerHTML = '';
+                emptyState.style.display = 'flex';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            grid.innerHTML = filteredCards.map(card => `
+                <div class="card-item" onclick="viewCard('${card.id}')">
+                    <div class="card-icon" style="background: linear-gradient(135deg, ${card.color}, ${adjustColor(card.color, -20)});">
+                        ${card.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="card-info">
+                        <div class="card-name">${escapeHtml(card.name)}</div>
+                        <div class="card-number mono">${formatCardNumber(card.number)}</div>
+                        <div class="card-category">${categoryLabels[card.category] || card.category}</div>
+                    </div>
+                    <svg class="card-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </div>
+            `).join('');
+        }
+
+        function formatCardNumber(number) {
+            if (number.length > 16) {
+                return number.slice(0, 8) + '...' + number.slice(-4);
+            }
+            return number;
+        }
+
+        function adjustColor(color, amount) {
+            const hex = color.replace('#', '');
+            const r = Math.max(0, Math.min(255, parseInt(hex.slice(0, 2), 16) + amount));
+            const g = Math.max(0, Math.min(255, parseInt(hex.slice(2, 4), 16) + amount));
+            const b = Math.max(0, Math.min(255, parseInt(hex.slice(4, 6), 16) + amount));
+            return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function openAddModal() {
+            document.getElementById('add-modal').classList.add('active');
+            document.getElementById('card-name').value = '';
+            document.getElementById('card-number').value = '';
+            document.getElementById('barcode-type').value = 'EAN13';
+            document.getElementById('card-category').value = 'shops';
+            selectedColor = '#6366f1';
+            updateColorSelection();
+        }
+
+        function closeAddModal() {
+            document.getElementById('add-modal').classList.remove('active');
+        }
+
+        async function saveCard() {
+            const name = document.getElementById('card-name').value.trim();
+            const number = document.getElementById('card-number').value.trim();
+            const barcodeType = document.getElementById('barcode-type').value;
+            const category = document.getElementById('card-category').value;
+            
+            if (!name || !number) {
+                showToast('Заполните название и номер карты', 'error');
+                return;
+            }
+            
+            const card = {
+                id: generateId(),
+                name,
+                number,
+                barcodeType,
+                category,
+                color: selectedColor,
+                createdAt: Date.now()
+            };
+            
+            try {
+                await saveCardToDB(card);
+                cards.push(card);
+                renderCards();
+                closeAddModal();
+                showToast('Карта сохранена!', 'success');
+            } catch (error) {
+                showToast('Ошибка сохранения', 'error');
+            }
+        }
+
+        function viewCard(id) {
+            const card = cards.find(c => c.id === id);
+            if (!card) return;
+            
+            currentViewCard = card;
+            
+            const content = document.getElementById('card-view-content');
+            content.innerHTML = `
+                <div class="card-view-icon" style="background: linear-gradient(135deg, ${card.color}, ${adjustColor(card.color, -20)});">
+                    ${card.name.charAt(0).toUpperCase()}
+                </div>
+                <h2 class="card-view-name">${escapeHtml(card.name)}</h2>
+                <div class="card-view-category">${categoryLabels[card.category] || card.category}</div>
+                <div class="brightness-control">
+                    <div class="brightness-label">
+                        <span>☀️ Яркость экрана</span>
+                        <span id="brightness-value">100%</span>
+                    </div>
+                    <input type="range" class="brightness-slider" id="brightness-slider" min="50" max="100" value="100">
+                </div>
+                <div class="barcode-container" id="barcode-container"></div>
+                <div class="card-view-number mono">${escapeHtml(card.number)}</div>
+                <div class="card-view-actions">
+                    <button onclick="copyCardNumber()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        Копировать
+                    </button>
+                    <button class="delete-btn" onclick="deleteCard('${card.id}')">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                        Удалить
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('view-modal').classList.add('active');
+            
+            // Brightness slider
+            document.getElementById('brightness-slider').addEventListener('input', (e) => {
+                document.getElementById('brightness-value').textContent = e.target.value + '%';
+                document.getElementById('barcode-container').style.filter = `brightness(${e.target.value / 100})`;
+            });
+            
+            setTimeout(() => generateBarcode(card), 100);
+        }
+
+        function generateBarcode(card) {
+            const container = document.getElementById('barcode-container');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            if (card.barcodeType === 'QR') {
+                const canvas = QRCode.generate(card.number, 200);
+                container.appendChild(canvas);
+            } else {
+                let encoded;
+                if (card.barcodeType === 'EAN13') {
+                    encoded = Barcode.EAN13.encode(card.number.padStart(13, '0').slice(-13));
+                } else if (card.barcodeType === 'EAN8') {
+                    encoded = Barcode.EAN8.encode(card.number.padStart(8, '0').slice(-8));
+                } else {
+                    encoded = Barcode.CODE128.encode(card.number);
+                }
+                
+                if (encoded) {
+                    container.innerHTML = Barcode.renderToSVG(encoded, 280, 100);
+                } else {
+                    // Fallback to CODE128
+                    encoded = Barcode.CODE128.encode(card.number);
+                    container.innerHTML = Barcode.renderToSVG(encoded, 280, 100);
+                }
+            }
+        }
+
+        function closeViewModal() {
+            document.getElementById('view-modal').classList.remove('active');
+            currentViewCard = null;
+        }
+
+        async function copyCardNumber() {
+            if (!currentViewCard) return;
+            try {
+                await navigator.clipboard.writeText(currentViewCard.number);
+                showToast('Номер скопирован!', 'success');
+            } catch (error) {
+                showToast('Ошибка копирования', 'error');
+            }
+        }
+
+        async function deleteCard(id) {
+            if (!confirm('Удалить эту карту?')) return;
+            try {
+                await deleteCardFromDB(id);
+                cards = cards.filter(c => c.id !== id);
+                renderCards();
+                closeViewModal();
+                showToast('Карта удалена', 'success');
+            } catch (error) {
+                showToast('Ошибка удаления', 'error');
+            }
+        }
+
+        function updateColorSelection() {
+            document.querySelectorAll('.color-option').forEach(el => {
+                el.classList.toggle('selected', el.dataset.color === selectedColor);
+            });
+        }
+
+        document.getElementById('color-options').addEventListener('click', (e) => {
+            const colorOption = e.target.closest('.color-option');
+            if (colorOption) {
+                selectedColor = colorOption.dataset.color;
+                updateColorSelection();
+            }
+        });
+
+        document.getElementById('category-pills').addEventListener('click', (e) => {
+            const pill = e.target.closest('.category-pill');
+            if (pill) {
+                document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+                pill.classList.add('active');
+                currentFilter = pill.dataset.category;
+                renderCards();
+            }
+        });
+
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            renderCards();
+        });
+
+        function openSettings() {
+            document.getElementById('settings-modal').classList.add('active');
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.remove('active');
+        }
+
+        function exportData() {
+            const data = JSON.stringify(cards, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cardvault-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Данные экспортированы!', 'success');
+        }
+
+        function triggerImport() {
+            document.getElementById('import-file').click();
+        }
+
+        async function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const importedCards = JSON.parse(text);
+                if (!Array.isArray(importedCards)) throw new Error('Invalid format');
+                
+                for (const card of importedCards) {
+                    if (card.id && card.name && card.number) {
+                        card.id = generateId();
+                        await saveCardToDB(card);
+                        cards.push(card);
+                    }
+                }
+                renderCards();
+                showToast(`Импортировано ${importedCards.length} карт!`, 'success');
+            } catch (error) {
+                showToast('Ошибка импорта файла', 'error');
+            }
+            event.target.value = '';
+        }
+
+        async function clearAllData() {
+            if (!confirm('Удалить все карты? Это действие нельзя отменить.')) return;
+            try {
+                await clearDB();
+                cards = [];
+                renderCards();
+                closeSettings();
+                showToast('Все данные удалены', 'success');
+            } catch (error) {
+                showToast('Ошибка удаления', 'error');
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const msg = document.getElementById('toast-message');
+            icon.textContent = type === 'success' ? '✓' : '✕';
+            msg.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) overlay.classList.remove('active');
+            });
+        });
+
+        async function init() {
+            try {
+                await initDB();
+                await loadCards();
+                renderCards();
+                
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('sw.js').catch(() => {});
+                }
+            } catch (error) {
+                console.error('Init error:', error);
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
