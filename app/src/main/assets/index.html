@@ -1213,7 +1213,7 @@
                 <div class="settings-item" style="border-bottom: none;">
                     <div>
                         <div class="settings-label">О приложении</div>
-                        <div class="settings-desc" id="app-version-text">CardVault v2.3</div>
+                        <div class="settings-desc" id="app-version-text">CardVault v2.4</div>
                     </div>
                 </div>
             </div>
@@ -1458,7 +1458,7 @@
         // ========================================
         
         // Версия приложения для проверки обновлений
-        const APP_VERSION = '2.3';
+        const APP_VERSION = '2.4';
         const GITHUB_REPO = 'StWings/Cardvault';
 
         const DB_NAME = 'cardvault';
@@ -1759,28 +1759,55 @@
             });
         }
 
-        document.getElementById('color-options').addEventListener('click', (e) => {
-            const colorOption = e.target.closest('.color-option');
-            if (colorOption) {
-                selectedColor = colorOption.dataset.color;
-                updateColorSelection();
+        function setupEventListeners() {
+            // Выбор цвета карты
+            const colorOptions = document.getElementById('color-options');
+            if (colorOptions) {
+                colorOptions.addEventListener('click', (e) => {
+                    const colorOption = e.target.closest('.color-option');
+                    if (colorOption) {
+                        selectedColor = colorOption.dataset.color;
+                        updateColorSelection();
+                    }
+                });
             }
-        });
 
-        document.getElementById('category-pills').addEventListener('click', (e) => {
-            const pill = e.target.closest('.category-pill');
-            if (pill) {
-                document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
-                pill.classList.add('active');
-                currentFilter = pill.dataset.category;
-                renderCards();
+            // Фильтр по категориям
+            const categoryPills = document.getElementById('category-pills');
+            if (categoryPills) {
+                categoryPills.addEventListener('click', (e) => {
+                    const pill = e.target.closest('.category-pill');
+                    if (pill) {
+                        document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+                        pill.classList.add('active');
+                        currentFilter = pill.dataset.category;
+                        renderCards();
+                    }
+                });
             }
-        });
 
-        document.getElementById('search-input').addEventListener('input', (e) => {
-            searchQuery = e.target.value;
-            renderCards();
-        });
+            // Поиск
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    searchQuery = e.target.value;
+                    renderCards();
+                });
+            }
+
+            // Закрытие модальных окон по клику на overlay
+            document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay) {
+                        overlay.classList.remove('active');
+                        // Останавливаем сканер если это окно сканера
+                        if (overlay.id === 'scanner-modal' && html5QrCode) {
+                            closeScanner();
+                        }
+                    }
+                });
+            });
+        }
 
         function openSettings() {
             document.getElementById('settings-modal').classList.add('active');
@@ -1874,12 +1901,6 @@
             toast.className = `toast ${type} show`;
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
-
-        document.querySelectorAll('.modal-overlay').forEach(overlay => {
-            overlay.addEventListener('click', (e) => {
-                if (e.target === overlay) overlay.classList.remove('active');
-            });
-        });
 
         // ========================================
         // СКАНЕР ШТРИХ-КОДОВ
@@ -2064,13 +2085,6 @@
             }, 300);
         }
 
-        // Обработчик закрытия модального окна сканера по клику на оверлей
-        document.getElementById('scanner-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'scanner-modal') {
-                closeScanner();
-            }
-        });
-
         // ========================================
         // ПРОВЕРКА ОБНОВЛЕНИЙ
         // ========================================
@@ -2196,6 +2210,9 @@
         async function init() {
             // Загружаем тему до отрисовки UI
             loadTheme();
+
+            // Настраиваем обработчики событий
+            setupEventListeners();
 
             try {
                 await initDB();
