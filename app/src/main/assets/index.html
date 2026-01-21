@@ -9,7 +9,10 @@
     <title>CardVault — Карты лояльности</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon-192.png">
-    
+
+    <!-- Библиотека для сканирования штрих-кодов (локальная копия для офлайн работы) -->
+    <script src="html5-qrcode.min.js"></script>
+
     <style>
         /* System font stack */
         :root {
@@ -31,6 +34,21 @@
             --radius-sm: 10px;
             --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
             --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --header-bg: rgba(10, 10, 15, 0.9);
+        }
+
+        /* Светлая тема */
+        [data-theme="light"] {
+            --bg-primary: #f5f5f7;
+            --bg-secondary: #ffffff;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f0f0f2;
+            --text-primary: #1a1a1a;
+            --text-secondary: #6b6b6b;
+            --text-muted: #9a9a9a;
+            --border: rgba(0, 0, 0, 0.08);
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+            --header-bg: rgba(255, 255, 255, 0.9);
         }
 
         * {
@@ -84,11 +102,16 @@
             padding: 20px 20px 16px;
             position: sticky;
             top: 0;
-            background: rgba(10, 10, 15, 0.9);
+            background: var(--header-bg);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             z-index: 100;
             border-bottom: 1px solid var(--border);
+        }
+
+        /* Скрыть градиент в светлой теме */
+        [data-theme="light"] .bg-gradient {
+            opacity: 0.3;
         }
 
         .header-top {
@@ -715,6 +738,55 @@
             border-color: var(--accent);
         }
 
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            width: 52px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            transition: var(--transition);
+            border-radius: 28px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background: var(--text-muted);
+            transition: var(--transition);
+            border-radius: 50%;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            background: white;
+            transform: translateX(24px);
+        }
+
         /* Color Options */
         .color-options {
             display: flex;
@@ -768,6 +840,174 @@
             border-radius: 50%;
             background: var(--accent);
             cursor: pointer;
+        }
+
+        /* Кнопка сканирования */
+        .scan-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 16px;
+            background: var(--bg-card);
+            border: 2px dashed var(--accent);
+            border-radius: var(--radius-sm);
+            color: var(--accent);
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 20px;
+        }
+
+        .scan-btn:hover {
+            background: rgba(99, 102, 241, 0.1);
+            border-style: solid;
+        }
+
+        .scan-btn:active {
+            transform: scale(0.98);
+        }
+
+        .scan-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* Сканер модальное окно */
+        .scanner-modal .modal {
+            max-height: 95vh;
+        }
+
+        .scanner-container {
+            width: 100%;
+            aspect-ratio: 1;
+            background: #000;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        #scanner-reader {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        #scanner-reader video {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+        }
+
+        #scanner-reader img[alt="Info icon"],
+        #scanner-reader img[alt="Camera based scan"] {
+            display: none !important;
+        }
+
+        .scanner-hint {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .scanner-result {
+            padding: 16px;
+            background: var(--bg-card);
+            border-radius: var(--radius-sm);
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .scanner-result.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        .scanner-result-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .scanner-result-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--success);
+            word-break: break-all;
+        }
+
+        .scanner-result-type {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .scanner-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .scanner-actions button {
+            flex: 1;
+            padding: 14px;
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent);
+        }
+
+        /* Скрытие элементов html5-qrcode */
+        #scanner-reader__scan_region {
+            background: transparent !important;
+        }
+
+        #scanner-reader__dashboard_section,
+        #scanner-reader__dashboard_section_csr,
+        #scanner-reader__header_message,
+        #scanner-reader__camera_permission_button,
+        #html5-qrcode-anchor-scan-type-change {
+            display: none !important;
+        }
+
+        #scanner-reader__scan_region > br,
+        #scanner-reader > div:last-child {
+            display: none !important;
+        }
+
+        .form-divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .form-divider::before,
+        .form-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
         }
     </style>
 </head>
@@ -839,11 +1079,25 @@
                 </button>
             </div>
             <div class="modal-body">
+                <!-- Кнопка сканирования -->
+                <button class="scan-btn" onclick="openScanner()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
+                        <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
+                        <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
+                        <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
+                        <line x1="7" y1="12" x2="17" y2="12"></line>
+                    </svg>
+                    Сканировать штрих-код
+                </button>
+
+                <div class="form-divider">или введите вручную</div>
+
                 <div class="form-group">
                     <label class="form-label">Название магазина</label>
                     <input type="text" class="form-input" id="card-name" placeholder="Например: Магнит">
                 </div>
-                
+
                 <div class="form-group">
                     <label class="form-label">Номер карты</label>
                     <input type="text" class="form-input mono" id="card-number" placeholder="Введите номер карты">
@@ -919,6 +1173,16 @@
             <div class="modal-body">
                 <div class="settings-item">
                     <div>
+                        <div class="settings-label">Светлая тема</div>
+                        <div class="settings-desc">Переключить на светлое оформление</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="theme-toggle" onchange="toggleTheme()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="settings-item">
+                    <div>
                         <div class="settings-label">Экспорт данных</div>
                         <div class="settings-desc">Сохранить все карты в JSON файл</div>
                     </div>
@@ -942,7 +1206,7 @@
                 <div class="settings-item" style="border-bottom: none;">
                     <div>
                         <div class="settings-label">О приложении</div>
-                        <div class="settings-desc">CardVault v2.0 — Полностью офлайн</div>
+                        <div class="settings-desc">CardVault v2.1 — Полностью офлайн</div>
                     </div>
                 </div>
             </div>
@@ -953,6 +1217,38 @@
     <div class="toast" id="toast">
         <span id="toast-icon">✓</span>
         <span id="toast-message">Сообщение</span>
+    </div>
+
+    <!-- Scanner Modal -->
+    <div class="modal-overlay scanner-modal" id="scanner-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Сканировать штрих-код</h3>
+                <button class="modal-close" onclick="closeScanner()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="scanner-container">
+                    <div id="scanner-reader"></div>
+                </div>
+                <p class="scanner-hint">Наведите камеру на штрих-код или QR-код карты</p>
+
+                <div class="scanner-result" id="scanner-result">
+                    <div class="scanner-result-label">Распознано</div>
+                    <div class="scanner-result-value mono" id="scanned-value"></div>
+                    <div class="scanner-result-type" id="scanned-type"></div>
+                </div>
+
+                <div class="scanner-actions">
+                    <button class="btn-secondary" onclick="closeScanner()">Отмена</button>
+                    <button class="btn-primary" id="use-scanned-btn" onclick="useScannedCode()" style="display: none;">Использовать</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -1477,10 +1773,33 @@
 
         function openSettings() {
             document.getElementById('settings-modal').classList.add('active');
+            // Обновляем состояние toggle при открытии настроек
+            const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+            document.getElementById('theme-toggle').checked = isLight;
         }
 
         function closeSettings() {
             document.getElementById('settings-modal').classList.remove('active');
+        }
+
+        // Переключение темы
+        function toggleTheme() {
+            const isLight = document.getElementById('theme-toggle').checked;
+            if (isLight) {
+                document.documentElement.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Загрузка сохранённой темы при старте
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
         }
 
         function exportData() {
@@ -1551,12 +1870,205 @@
             });
         });
 
+        // ========================================
+        // СКАНЕР ШТРИХ-КОДОВ
+        // ========================================
+
+        let html5QrCode = null;
+        let scannedData = null;
+
+        // Маппинг форматов html5-qrcode к нашим типам
+        const formatMapping = {
+            'QR_CODE': 'QR',
+            'EAN_13': 'EAN13',
+            'EAN_8': 'EAN8',
+            'CODE_128': 'CODE128',
+            'CODE_39': 'CODE128',
+            'CODE_93': 'CODE128',
+            'UPC_A': 'EAN13',
+            'UPC_E': 'EAN8',
+            'ITF': 'CODE128',
+            'CODABAR': 'CODE128',
+            'DATA_MATRIX': 'QR',
+            'AZTEC': 'QR'
+        };
+
+        // Человекочитаемые названия форматов
+        const formatNames = {
+            'QR_CODE': 'QR-код',
+            'EAN_13': 'EAN-13',
+            'EAN_8': 'EAN-8',
+            'CODE_128': 'Code 128',
+            'CODE_39': 'Code 39',
+            'CODE_93': 'Code 93',
+            'UPC_A': 'UPC-A',
+            'UPC_E': 'UPC-E',
+            'ITF': 'ITF',
+            'CODABAR': 'Codabar',
+            'DATA_MATRIX': 'Data Matrix',
+            'AZTEC': 'Aztec'
+        };
+
+        function openScanner() {
+            // Проверяем доступность библиотеки
+            if (typeof Html5Qrcode === 'undefined') {
+                showToast('Библиотека сканера не загружена. Проверьте интернет-соединение.', 'error');
+                return;
+            }
+
+            // Закрываем модальное окно добавления карты
+            closeAddModal();
+
+            // Сбрасываем состояние
+            scannedData = null;
+            document.getElementById('scanner-result').classList.remove('show');
+            document.getElementById('use-scanned-btn').style.display = 'none';
+
+            // Открываем модальное окно сканера
+            document.getElementById('scanner-modal').classList.add('active');
+
+            // Инициализируем сканер
+            setTimeout(() => {
+                startScanner();
+            }, 300);
+        }
+
+        async function startScanner() {
+            try {
+                html5QrCode = new Html5Qrcode('scanner-reader');
+
+                const config = {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0,
+                    formatsToSupport: [
+                        Html5QrcodeSupportedFormats.QR_CODE,
+                        Html5QrcodeSupportedFormats.EAN_13,
+                        Html5QrcodeSupportedFormats.EAN_8,
+                        Html5QrcodeSupportedFormats.CODE_128,
+                        Html5QrcodeSupportedFormats.CODE_39,
+                        Html5QrcodeSupportedFormats.UPC_A,
+                        Html5QrcodeSupportedFormats.UPC_E
+                    ]
+                };
+
+                await html5QrCode.start(
+                    { facingMode: 'environment' },
+                    config,
+                    onScanSuccess,
+                    onScanFailure
+                );
+            } catch (err) {
+                console.error('Ошибка запуска сканера:', err);
+
+                let errorMessage = 'Не удалось запустить камеру';
+                if (err.name === 'NotAllowedError') {
+                    errorMessage = 'Доступ к камере запрещён. Разрешите доступ в настройках.';
+                } else if (err.name === 'NotFoundError') {
+                    errorMessage = 'Камера не найдена на устройстве.';
+                } else if (err.name === 'NotReadableError') {
+                    errorMessage = 'Камера занята другим приложением.';
+                }
+
+                showToast(errorMessage, 'error');
+                closeScanner();
+            }
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            // Вибрация при успешном сканировании
+            if (navigator.vibrate) {
+                navigator.vibrate(100);
+            }
+
+            // Получаем формат
+            const format = decodedResult.result.format.formatName;
+            const ourFormat = formatMapping[format] || 'CODE128';
+            const formatName = formatNames[format] || format;
+
+            // Сохраняем данные
+            scannedData = {
+                value: decodedText,
+                format: ourFormat,
+                originalFormat: format
+            };
+
+            // Показываем результат
+            document.getElementById('scanned-value').textContent = decodedText;
+            document.getElementById('scanned-type').textContent = 'Формат: ' + formatName;
+            document.getElementById('scanner-result').classList.add('show');
+            document.getElementById('use-scanned-btn').style.display = 'block';
+
+            // Останавливаем сканирование после успеха
+            if (html5QrCode) {
+                html5QrCode.pause(true);
+            }
+        }
+
+        function onScanFailure(error) {
+            // Игнорируем ошибки - это нормально при поиске кода
+        }
+
+        async function closeScanner() {
+            // Останавливаем сканер
+            if (html5QrCode) {
+                try {
+                    await html5QrCode.stop();
+                } catch (err) {
+                    // Игнорируем ошибки при остановке
+                }
+                html5QrCode = null;
+            }
+
+            // Закрываем модальное окно
+            document.getElementById('scanner-modal').classList.remove('active');
+
+            // Сбрасываем состояние UI
+            scannedData = null;
+            document.getElementById('scanner-result').classList.remove('show');
+            document.getElementById('use-scanned-btn').style.display = 'none';
+        }
+
+        function useScannedCode() {
+            if (!scannedData) return;
+
+            // Сохраняем данные перед закрытием
+            const savedData = { ...scannedData };
+
+            // Закрываем сканер
+            closeScanner();
+
+            // Открываем форму добавления карты с заполненными данными
+            setTimeout(() => {
+                document.getElementById('add-modal').classList.add('active');
+
+                // Заполняем поля
+                document.getElementById('card-number').value = savedData.value;
+                document.getElementById('barcode-type').value = savedData.format;
+
+                // Фокус на поле названия
+                document.getElementById('card-name').focus();
+
+                showToast('Код отсканирован! Введите название магазина.', 'success');
+            }, 300);
+        }
+
+        // Обработчик закрытия модального окна сканера по клику на оверлей
+        document.getElementById('scanner-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'scanner-modal') {
+                closeScanner();
+            }
+        });
+
         async function init() {
+            // Загружаем тему до отрисовки UI
+            loadTheme();
+
             try {
                 await initDB();
                 await loadCards();
                 renderCards();
-                
+
                 if ('serviceWorker' in navigator) {
                     navigator.serviceWorker.register('sw.js').catch(() => {});
                 }

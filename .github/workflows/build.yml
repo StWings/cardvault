@@ -1,4 +1,4 @@
-name: Build APK
+name: Build & Release APK
 
 on:
   push:
@@ -23,17 +23,56 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Generate Gradle Wrapper
-        run: |
-          gradle wrapper --gradle-version 8.2
+        run: gradle wrapper --gradle-version 8.2
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug
+      - name: Build Release APK
+        run: ./gradlew assembleRelease
 
-      - name: Upload APK
+      - name: Rename APK
+        run: mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/CardVault.apk
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(grep "versionName" app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
+          VERSION_CODE=$(grep "versionCode" app/build.gradle | sed 's/[^0-9]*//g')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Delete existing release
+        run: gh release delete "v${{ steps.version.outputs.version }}" --yes || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete existing tag
+        run: git push origin :refs/tags/v${{ steps.version.outputs.version }} || true
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: CardVault v${{ steps.version.outputs.version }} (build ${{ steps.version.outputs.version_code }})
+          body: |
+            ## CardVault v${{ steps.version.outputs.version }}
+
+            Дата сборки: ${{ steps.version.outputs.date }}
+
+            ### Установка
+            1. Скачайте `CardVault.apk`
+            2. Разрешите установку из неизвестных источников
+            3. Установите APK
+          files: app/build/outputs/apk/release/CardVault.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: CardVault
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/release/CardVault.apk
